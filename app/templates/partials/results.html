@@ -5,7 +5,8 @@
   <div class="summary-row">
     <div>
       <h2>{{ n }} deadline{{ "" if n == 1 else "s" }} found <small>in {{ s.title }}</small></h2>
-      <p class="muted">{{ confirmed }} confirmed · {{ needs }} need input · <a href="/s/{{ s.id }}">permalink</a></p>
+      <p class="muted">{{ confirmed }} confirmed · {{ needs }} need input · extractor: <code>{{ s.engine }}</code> · <a href="/s/{{ s.id }}">permalink</a></p>
+      {% if s.warning %}<p class="warning">{{ s.warning }}</p>{% endif %}
     </div>
     <div class="export">
       <a class="button primary {% if not confirmed %}disabled{% endif %}"

@@ -22,10 +22,10 @@ Deadline: 28 Sep 2026
 Source:   "within 14 days from receipt"
 ```
 
-> **Always verify extracted deadlines against the original document.** Extraction is rule-based
-> pattern matching over English legal/business phrasing. It can miss clauses, mis-attribute an
-> action, or pick the wrong reference event. The source quote and the full sentence are shown
-> next to every result precisely so you can check them before confirming.
+> **Always verify extracted deadlines against the original document.** Extraction is automated
+> (rule-based patterns or an LLM, see below). Either can miss clauses, mis-attribute an action,
+> or pick the wrong reference event. The source quote and the full sentence are shown next to
+> every result precisely so you can check them before confirming.
 
 ## Features
 
@@ -45,8 +45,18 @@ Source:   "within 14 days from receipt"
 - JSON API (`/api/extract`, `/api/extract-file`) for scripting.
 
 Date arithmetic is **deterministic code** (`app/date_engine.py`). Text interpretation is isolated
-behind a tiny `DeadlineExtractor` protocol (`app/extraction/`), so an LLM-based extractor can be
-plugged in later without touching the calculation or the UI.
+behind a tiny `DeadlineExtractor` protocol (`app/extraction/`) with two implementations:
+
+| Engine (`DE_EXTRACTOR`) | What it does | Needs |
+|---|---|---|
+| `rules` | Deterministic regex patterns over English contract phrasing. Offline, free, predictable. | nothing |
+| `llm` | Google Gemini with a strict JSON schema. Handles free-form wording and **non-English documents** (quotes stay verbatim, action titles are always English). | `DE_GEMINI_API_KEY` |
+| `auto` (default) | `llm` when a key is configured, with automatic fallback to `rules` if the API fails (the UI shows which engine produced the result and why). Without a key behaves as `rules`. | — |
+
+In both engines the model/regex only *describes* the rule (kind, offset, unit, direction,
+reference event, verbatim quote). Dates are always computed by `date_engine.py`, and every LLM
+quote is checked against the document text — descriptors whose quote is not found verbatim are
+dropped, so nothing is shown that you cannot verify in the source.
 
 ## Quick start
 
@@ -67,7 +77,16 @@ docker compose up --build
 # open http://127.0.0.1:8000
 ```
 
-Configuration is optional — see `.env.example` (`DE_*` variables).
+Configuration is optional — see `.env.example` (`DE_*` variables). To enable the LLM engine:
+
+```bash
+cp .env.example .env
+# set DE_GEMINI_API_KEY=<key from https://aistudio.google.com/apikey>
+uvicorn app.main:app --reload        # or: docker compose up --build (reads .env)
+```
+
+The results header shows `extractor: gemini:gemini-2.5-flash` or `extractor: rules`; the JSON API
+returns the same in `engine` (plus `warning` when the LLM failed and rules were used instead).
 
 ## Demo
 
@@ -113,8 +132,11 @@ No weekend/holiday roll-forward is applied; a note is attached when a result fal
 ## Development
 
 ```bash
-pytest -q          # 59 tests: absolute dates, within-N-days, notice periods, missing reference
-                   # date, multiple deadlines, no deadlines, invalid files, date edge cases, UI flow
+pytest -q          # 73 tests, fully offline: absolute dates, within-N-days, notice periods,
+                   # missing reference date, multiple deadlines, no deadlines, invalid files,
+                   # date edge cases, UI flow, Gemini extractor with a mocked HTTP transport
+                   # (schema, quote verification, error handling, fallback to rules)
+DE_GEMINI_API_KEY=... DE_LIVE_LLM=1 pytest -q tests/test_llm_live.py -s   # real API smoke test
 ruff check . && ruff format --check .
 docker build -t deadline-extractor .
 ```
@@ -124,11 +146,15 @@ and smoke-tests the running container.
 
 ## Limitations
 
-- **English only.** Patterns cover common contract / regulatory phrasing; unusual wording, tables
-  of dates, or deadlines spread across several sentences are missed.
-- **Rule-based, not semantic.** Action titles are heuristic rewrites of the sentence; the
-  reference event (“receipt”, “signing”, …) is keyword-matched. Unknown events are flagged
-  `Needs input` rather than guessed.
+- **`rules` engine is English only** and pattern-based: unusual wording, tables of dates, or
+  deadlines spread across several sentences are missed; action titles are heuristic rewrites of
+  the sentence and the reference event (“receipt”, “signing”, …) is keyword-matched. Unknown
+  events are flagged `Needs input` rather than guessed.
+- **`llm` engine** sends the document text (first 60k characters) to Google's API — check that
+  this is acceptable for your documents. Output is constrained by a JSON schema and verified
+  against the source, but the model can still miss a clause or pick a wrong reference event;
+  the UI exists so that a human confirms every date. Non-English documents are supported by the
+  LLM engine only.
 - **No OCR.** Scanned PDFs without a text layer are rejected.
 - **No jurisdiction-specific day counting** (public holidays, “clear days”, court rules).
 - Dates like `03/04/2026` are read day-first.
@@ -145,7 +171,7 @@ app/
   main.py            FastAPI routes (HTMX UI + JSON API)
   models.py          Pydantic domain models
   parsers/           PDF / DOCX / text → plain text
-  extraction/        DeadlineExtractor protocol + RuleBasedExtractor
+  extraction/        DeadlineExtractor protocol, RuleBasedExtractor, GeminiExtractor (+ fallback)
   date_engine.py     deterministic date arithmetic
   ics.py             iCalendar export
   templates/, static/

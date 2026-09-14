@@ -298,6 +298,8 @@ def _cap(s: str) -> str:
 
 
 class RuleBasedExtractor:
+    name = "rules"
+
     def extract(self, text: str) -> list[Deadline]:
         found: list[Deadline] = []
         for sentence in split_sentences(text):
