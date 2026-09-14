@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from fastapi import HTTPException
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +13,12 @@ class Settings(BaseSettings):
     examples_dir: Path = Path(__file__).resolve().parent.parent / "examples"
     host: str = "0.0.0.0"
     port: int = 8000
+
+    # Extraction engine: "auto" = Gemini with rule-based fallback when a key is configured,
+    # otherwise rules; "rules" = deterministic patterns only; "llm" = Gemini only (fails loudly).
+    extractor: Literal["auto", "rules", "llm"] = "auto"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     def example_files(self) -> list[str]:
         if not self.examples_dir.is_dir():

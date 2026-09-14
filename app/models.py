@@ -80,3 +80,5 @@ class ExtractionResult(BaseModel):
     text_length: int
     deadlines: list[Deadline]
     required_anchors: list[str]
+    engine: str = "rules"  # extractor that produced the result, e.g. "rules" or "gemini:<model>"
+    warning: str = ""  # non-fatal problem, e.g. LLM unavailable -> rules were used

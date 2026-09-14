@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from app import date_engine, ics
-from app.extraction import get_extractor
+from app.extraction import extract_detailed, get_extractor
 from app.models import ANCHOR_LABELS, Deadline, DeadlineKind, Direction, ExtractionResult, Unit
 from app.parsers import EmptyDocumentError, UnsupportedFileError, parse_text, parse_upload
 from app.settings import settings
@@ -35,6 +35,8 @@ class Session(BaseModel):
     text: str
     deadlines: list[Deadline]
     anchors: dict[str, date] = {}
+    engine: str = "rules"
+    warning: str = ""
 
     def required_anchors(self) -> list[str]:
         keys = [d.anchor for d in self.deadlines if d.anchor]
@@ -62,9 +64,16 @@ def _get(session_id: str) -> Session:
 
 
 def run_extraction(text: str) -> ExtractionResult:
-    deadlines = date_engine.compute_all(get_extractor().extract(text), {})
+    found, engine, warning = extract_detailed(get_extractor(), text)
+    deadlines = date_engine.compute_all(found, {})
     anchors = sorted({d.anchor for d in deadlines if d.anchor}, key=list(ANCHOR_LABELS).index)
-    return ExtractionResult(text_length=len(text), deadlines=deadlines, required_anchors=anchors)
+    return ExtractionResult(
+        text_length=len(text),
+        deadlines=deadlines,
+        required_anchors=anchors,
+        engine=engine,
+        warning=warning,
+    )
 
 
 # ------------------------------------------------------------------ UI
@@ -96,11 +105,14 @@ async def extract(
         return templates.TemplateResponse(
             request, "partials/error.html", {"message": str(exc)}, status_code=400
         )
+    found, engine, warning = extract_detailed(get_extractor(), source_text)
     session = Session(
         id=uuid.uuid4().hex[:10],
         title=title,
         text=source_text,
-        deadlines=get_extractor().extract(source_text),
+        deadlines=found,
+        engine=engine,
+        warning=warning,
     )
     session.recompute()
     _store(session)

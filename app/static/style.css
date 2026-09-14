@@ -54,3 +54,5 @@ details summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
 .deadline-actions .edit[open] { flex: 1 1 100%; }
 .deadline-actions .edit form { margin-top: 10px; }
 footer p { color: var(--muted); font-size: .85rem; }
+.warning { color: var(--warn); font-size: .9rem; }
+code { font-size: .85em; }
