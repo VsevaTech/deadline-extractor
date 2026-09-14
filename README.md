@@ -85,7 +85,7 @@ cp .env.example .env
 uvicorn app.main:app --reload        # or: docker compose up --build (reads .env)
 ```
 
-The results header shows `extractor: gemini:gemini-2.5-flash` or `extractor: rules`; the JSON API
+The results header shows `extractor: gemini:gemini-3.8-flash` or `extractor: rules`; the JSON API
 returns the same in `engine` (plus `warning` when the LLM failed and rules were used instead).
 
 ## Demo
@@ -154,7 +154,10 @@ and smoke-tests the running container.
   this is acceptable for your documents. Output is constrained by a JSON schema and verified
   against the source, but the model can still miss a clause or pick a wrong reference event;
   the UI exists so that a human confirms every date. Non-English documents are supported by the
-  LLM engine only.
+  LLM engine only. Default model is `gemini-3.8-flash` with `thinkingLevel: low` (structured
+  extraction against a fixed schema doesn't need deep reasoning); Gemini model availability
+  shifts over time — if `DE_GEMINI_MODEL` starts returning 404, check
+  https://ai.google.dev/gemini-api/docs/models for the current model list.
 - **No OCR.** Scanned PDFs without a text layer are rejected.
 - **No jurisdiction-specific day counting** (public holidays, “clear days”, court rules).
 - Dates like `03/04/2026` are read day-first.

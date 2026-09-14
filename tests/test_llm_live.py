@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 def test_live_spec_example():
     ex = GeminiExtractor(
         api_key=os.environ["DE_GEMINI_API_KEY"],
-        model=os.environ.get("DE_GEMINI_MODEL", "gemini-2.5-flash"),
+        model=os.environ.get("DE_GEMINI_MODEL", "gemini-3.8-flash"),
     )
     found = ex.extract("Documents must be submitted within 14 days from receipt.")
     print("\n", [d.model_dump(mode="json") for d in found])

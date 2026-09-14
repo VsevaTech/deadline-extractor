@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # otherwise rules; "rules" = deterministic patterns only; "llm" = Gemini only (fails loudly).
     extractor: Literal["auto", "rules", "llm"] = "auto"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.8-flash"
 
     def example_files(self) -> list[str]:
         if not self.examples_dir.is_dir():

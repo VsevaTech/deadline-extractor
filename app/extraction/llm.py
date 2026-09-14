@@ -22,7 +22,7 @@ from .rules import split_sentences
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.8-flash"
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 ANCHOR_KEYS = [k for k in ANCHOR_LABELS if k != "other"]
@@ -207,6 +207,9 @@ class GeminiExtractor:
                 "temperature": 0,
                 "responseMimeType": "application/json",
                 "responseSchema": RESPONSE_SCHEMA,
+                # Structured extraction against a fixed schema doesn't need deep reasoning;
+                # "low" cuts thinking-token cost/latency. Ignored by models that don't support it.
+                "thinkingConfig": {"thinkingLevel": "low"},
             },
         }
 

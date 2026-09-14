@@ -67,9 +67,10 @@ def test_request_shape_and_happy_path():
         )
 
     found = make_extractor(handler).extract(DOC)
-    assert seen["url"].endswith("/models/gemini-2.5-flash:generateContent")
+    assert seen["url"].endswith("/models/gemini-3.8-flash:generateContent")
     assert seen["key"] == "test-key"
     assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
+    assert seen["body"]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
     assert "English" in seen["body"]["systemInstruction"]["parts"][0]["text"]
 
     assert [d.kind for d in found] == [
@@ -175,7 +176,7 @@ def test_fallback_reports_llm_engine_on_success():
     llm = make_extractor(lambda r: gemini_response({"deadlines": []}))
     fb = FallbackExtractor(llm, RuleBasedExtractor())
     found, engine, warning = fb.extract_detailed(DOC)
-    assert found == [] and engine == "gemini:gemini-2.5-flash" and warning == ""
+    assert found == [] and engine == "gemini:gemini-3.8-flash" and warning == ""
 
 
 def test_build_extractor_modes():
@@ -214,8 +215,8 @@ def test_api_reports_engine(monkeypatch):
         "/api/extract",
         json={"text": "Documents must be submitted within 14 days from receipt.", "anchors": {}},
     ).json()
-    assert body["engine"] == "gemini:gemini-2.5-flash" and body["warning"] == ""
+    assert body["engine"] == "gemini:gemini-3.8-flash" and body["warning"] == ""
     assert body["deadlines"][0]["action"] == "Submit documents"
     html = client.post("/extract", data={"text": DOC}).text
-    assert "gemini:gemini-2.5-flash" in html
+    assert "gemini:gemini-3.8-flash" in html
     assert extraction  # imported for clarity of what is being patched
