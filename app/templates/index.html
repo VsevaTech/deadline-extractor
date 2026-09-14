@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deadline Extractor</title>
+  <link rel="icon" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+<header>
+  <h1><a href="/">Deadline Extractor</a></h1>
+  <p class="tagline">Document → deadlines → exact dates → .ics. Every result shows its source quote — verify it against the document.</p>
+</header>
+
+<main>
+  <section class="card" id="input">
+    <form hx-post="/extract" hx-target="#results" hx-swap="innerHTML" hx-encoding="multipart/form-data"
+          hx-indicator="#spinner">
+      <div class="grid">
+        <label>
+          <span>Upload PDF / DOCX / TXT</span>
+          <input type="file" name="file" accept=".pdf,.docx,.txt,.md">
+        </label>
+        {% if examples %}
+        <label>
+          <span>…or pick a synthetic example</span>
+          <select name="example">
+            <option value="">—</option>
+            {% for e in examples %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+          </select>
+        </label>
+        {% endif %}
+      </div>
+      <label>
+        <span>…or paste text</span>
+        <textarea name="text" rows="6" placeholder="Documents must be submitted within 14 days from receipt."></textarea>
+      </label>
+      <div class="actions">
+        <button type="submit" class="primary">Extract deadlines</button>
+        <span id="spinner" class="htmx-indicator">Working…</span>
+      </div>
+    </form>
+  </section>
+
+  <section id="results">
+    {% if s %}{% include "partials/results.html" %}{% endif %}
+  </section>
+</main>
+<footer>
+  <p>Dates are computed by deterministic calendar arithmetic. Extraction is rule-based and may miss or misread clauses — always compare with the original document.</p>
+</footer>
+</body>
+</html>

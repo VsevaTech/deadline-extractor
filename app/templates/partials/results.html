@@ -1,0 +1,97 @@
+{% set n = s.deadlines | length %}
+{% set confirmed = s.deadlines | selectattr("confirmed") | list | length %}
+{% set needs = s.deadlines | selectattr("status", "equalto", "needs_input") | list | length %}
+<div class="card" id="summary">
+  <div class="summary-row">
+    <div>
+      <h2>{{ n }} deadline{{ "" if n == 1 else "s" }} found <small>in {{ s.title }}</small></h2>
+      <p class="muted">{{ confirmed }} confirmed · {{ needs }} need input · <a href="/s/{{ s.id }}">permalink</a></p>
+    </div>
+    <div class="export">
+      <a class="button primary {% if not confirmed %}disabled{% endif %}"
+         href="/s/{{ s.id }}/calendar.ics" {% if not confirmed %}aria-disabled="true" tabindex="-1"{% endif %}>
+        Download calendar.ics ({{ confirmed }})
+      </a>
+    </div>
+  </div>
+
+  {% set required = s.required_anchors() %}
+  {% if required %}
+  <form class="anchors" hx-post="/s/{{ s.id }}/anchors" hx-target="#results" hx-swap="innerHTML">
+    <p><strong>Reference dates</strong> — needed to calculate relative deadlines:</p>
+    <div class="grid">
+      {% for key in required %}
+      <label>
+        <span>{{ ANCHOR_LABELS[key] }}</span>
+        <input type="date" name="anchor_{{ key }}" value="{{ s.anchors[key].isoformat() if key in s.anchors else '' }}">
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit">Recalculate</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if n == 0 %}
+<div class="card empty">
+  <p>No deadline language was recognised in this document ({{ s.text | length }} characters of text).</p>
+  <p class="muted">The extractor looks for phrases like “within 14 days of receipt”, “no later than 30 September 2026”, “30 days' written notice”. Check the document manually.</p>
+</div>
+{% endif %}
+
+{% for d in s.deadlines %}
+<article class="card deadline status-{{ d.status }}" id="d-{{ d.id }}">
+  <div class="deadline-head">
+    <span class="badge {{ d.status }}">{{ d.status | replace("_", " ") }}</span>
+    <span class="badge kind">{{ d.kind }}</span>
+  </div>
+  <dl>
+    <dt>Action</dt><dd class="action">{{ d.action }}</dd>
+    <dt>Deadline</dt>
+    <dd class="date">
+      {% if d.computed_date %}<time datetime="{{ d.computed_date }}">{{ d.computed_date.strftime("%d %b %Y") }}</time>
+      {% else %}<em>— needs input</em>{% endif %}
+      <small class="muted">({{ d.describe_rule() }})</small>
+    </dd>
+    <dt>Source</dt>
+    <dd><blockquote>“{{ d.source_quote }}”</blockquote>
+      {% if d.context and d.context != d.source_quote %}
+      <details><summary>Show sentence</summary><p class="context">{{ d.context }}</p></details>
+      {% endif %}
+    </dd>
+    {% if d.note %}<dt>Note</dt><dd class="note">{{ d.note }}</dd>{% endif %}
+  </dl>
+
+  <div class="deadline-actions">
+    <form hx-post="/s/{{ s.id }}/d/{{ d.id }}/confirm" hx-target="#results" hx-swap="innerHTML">
+      <button type="submit" class="{{ 'secondary' if d.confirmed else 'primary' }}" {% if not d.computed_date %}disabled{% endif %}>
+        {{ "Unconfirm" if d.confirmed else "Confirm" }}
+      </button>
+    </form>
+    <form hx-post="/s/{{ s.id }}/d/{{ d.id }}/delete" hx-target="#results" hx-swap="innerHTML">
+      <button type="submit" class="danger" title="Remove this result">Remove</button>
+    </form>
+    <details class="edit">
+      <summary>Edit</summary>
+      <form hx-post="/s/{{ s.id }}/d/{{ d.id }}" hx-target="#results" hx-swap="innerHTML" class="grid">
+        <label><span>Action</span><input name="action" value="{{ d.action }}"></label>
+        <label><span>Kind</span>
+          <select name="kind">{% for k in KINDS %}<option value="{{ k }}" {% if k == d.kind %}selected{% endif %}>{{ k }}</option>{% endfor %}</select>
+        </label>
+        <label><span>Fixed date (absolute)</span><input type="date" name="absolute_date" value="{{ d.absolute_date or '' }}"></label>
+        <label><span>Offset</span><input type="number" min="0" name="offset_value" value="{{ d.offset_value if d.offset_value is not none else '' }}"></label>
+        <label><span>Unit</span>
+          <select name="offset_unit"><option value="">—</option>{% for u in UNITS %}<option value="{{ u }}" {% if u == d.offset_unit %}selected{% endif %}>{{ u | replace("_", " ") }}</option>{% endfor %}</select>
+        </label>
+        <label><span>Direction</span>
+          <select name="direction">{% for dir in DIRECTIONS %}<option value="{{ dir }}" {% if dir == d.direction %}selected{% endif %}>{{ dir }}</option>{% endfor %}</select>
+        </label>
+        <label><span>Reference date</span>
+          <select name="anchor"><option value="">—</option>{% for key, label in ANCHOR_LABELS.items() %}<option value="{{ key }}" {% if key == d.anchor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <div class="actions"><button type="submit">Save</button></div>
+      </form>
+    </details>
+  </div>
+</article>
+{% endfor %}

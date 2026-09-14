@@ -1,0 +1,19 @@
+SYNTHETIC EXAMPLE — SERVICE AGREEMENT (for demo purposes only, not a real contract)
+
+This Service Agreement is entered into between Acme Cloud Ltd ("Supplier") and Blue Harbour Trading LLC ("Customer").
+
+1. Term. This Agreement is effective from the Effective Date and continues for an initial term of twelve (12) months.
+
+2. Onboarding documents. The Customer's KYC documents must be submitted within 14 days from receipt of this Agreement.
+
+3. Fees. The Customer shall pay each invoice within 30 days of the invoice date.
+
+4. Termination for convenience. Either party may terminate this Agreement by giving thirty (30) days' written notice to the other party.
+
+5. Renewal. Any request to renew on different terms must be made at least 60 days prior to the expiry of the term.
+
+6. Data return. Upon termination, all Customer data shall be returned within 5 business days of the effective date of termination.
+
+7. Governing law. This Agreement is governed by the laws of England and Wales.
+
+8. Annual report. The Supplier's annual security report must be delivered no later than 31 March 2027.
